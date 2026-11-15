@@ -189,7 +189,9 @@ repo)
     pacman_conf_with_omarchy | tail -4 | sudo tee -a /etc/pacman.conf >/dev/null
   fi
   gpg --show-keys --with-colons "$HERE/keys/omarchy.gpg" | grep -q "^fpr:::::::::$KEY_FPR:" || die "keys/omarchy.gpg is not $KEY_FPR"
-  sudo pacman-key --list-keys "$KEY_FPR" >/dev/null 2>&1 || { sudo pacman-key --add "$HERE/keys/omarchy.gpg"; sudo pacman-key --lsign-key "$KEY_FPR"; }
+  sudo pacman-key --list-keys "$KEY_FPR" >/dev/null 2>&1 || sudo pacman-key --add "$HERE/keys/omarchy.gpg"
+  sudo pacman-key --lsign-key "$KEY_FPR" >/dev/null   # always: a key added earlier may be unsigned
+  sudo pacman-key --list-keys "$KEY_FPR" | grep -q '\[ *full *\]' || die "Omarchy key $KEY_FPR is not trusted in pacman's keyring"
   sudo pacman -Sy
   "$0" check
   ;;
