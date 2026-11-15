@@ -52,6 +52,7 @@ and those paths would break Aurora:
 | Firewall: deny incoming, SSH not opened | SSH allowed from the LAN before ufw is enabled |
 | `hardware/vulkan` would add `vulkan-asahi` (conflicts with `vulkan-aurora`) | skipped |
 | `config/snapper` sets up snapper + `limine-snapper-sync` | skipped |
+| `omarchy-reinstall-configs` also resets Limine (`/boot/limine.conf`, `limine-update`) and Plymouth (`mkinitcpio -P`) | the `user` phase copies `/etc/skel` and sets up nvim itself |
 | Direct `pacman -Syu` is refused by Omarchy's guard hook | `sudo env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -Syu`; `omarchy update` should also work (without the Mac boot package it only warns that boot files were not verified) |
 | Migrations from older Omarchy versions | `omarchy-provision-user --first-install` marks all shipped ones done |
 

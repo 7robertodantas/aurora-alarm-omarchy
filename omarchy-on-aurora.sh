@@ -248,8 +248,25 @@ system)
   ;;
 user)
   [[ -x /usr/bin/omarchy-provision-user ]] || die "omarchy not installed"
-  omarchy-reinstall-configs
-  omarchy-provision-user --first-install   # also marks every shipped migration done
+  # omarchy-reinstall-configs, minus its boot parts: it also runs
+  # omarchy-refresh-limine (moves /boot/limine.conf, limine-update) and
+  # omarchy-refresh-plymouth (sets Omarchy's theme, mkinitcpio -P). Aurora owns
+  # both; its initramfs has no plymouth hook. Video decode setup is Snapdragon only.
+  cp -af /etc/skel/. ~/
+  if command -v omarchy-nvim-refresh >/dev/null; then omarchy-nvim-refresh
+  elif command -v omarchy-nvim-setup >/dev/null; then omarchy-nvim-setup --force; fi
+  # Also marks every shipped migration done. Over SSH (no desktop session) its
+  # last step, xdg-settings set default-web-browser, fails: finish those few
+  # lines with xdg-mime, which needs no session.
+  if ! omarchy-provision-user --first-install; then
+    [[ -z ${WAYLAND_DISPLAY:-} ]] || die "omarchy-provision-user failed inside a desktop session"
+    say "omarchy-provision-user stopped (no desktop session?); finishing its default apps and marker"
+    xdg-mime default chromium.desktop x-scheme-handler/http x-scheme-handler/https text/html
+    xdg-mime default HEY.desktop x-scheme-handler/mailto
+    mkdir -p ~/.local/state/omarchy/migrations
+    for m in "$OM"/migrations/*.sh; do touch ~/.local/state/omarchy/migrations/"${m##*/}"; done
+    omarchy-done mark finalize-user
+  fi
   ;;
 verify)
   B=$STATE/pre-omarchy
