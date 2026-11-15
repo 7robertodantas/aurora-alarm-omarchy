@@ -245,6 +245,19 @@ system)
       echo "== $s"; source "$OMARCHY_INSTALL/$s.sh"
     done'
   sudo ufw status verbose | head -20
+  # Greeter: wait for Aurora's GPU (it probes late; without it the greeter
+  # compositor renders in software and misses outputs), and seed SDDM's last
+  # user/session as Omarchy's first-boot setup does (its theme logs in as
+  # userModel.lastUser; empty = "User not known"). No autologin.
+  sudo install -Dm755 "$HERE/files/omarchy-on-aurora-wait-gpu" /usr/local/libexec/omarchy-on-aurora-wait-gpu
+  sudo install -Dm644 "$HERE/files/50-omarchy-on-aurora-gpu.conf" /etc/systemd/system/display-manager.service.d/50-omarchy-on-aurora-gpu.conf
+  sudo systemctl daemon-reload
+  if ! sudo test -s /var/lib/sddm/state.conf; then
+    sudo install -d -o sddm -g sddm /var/lib/sddm
+    printf '[Last]\nSession=omarchy.desktop\nUser=%s\n' "$USER" | sudo tee /var/lib/sddm/state.conf >/dev/null
+    sudo chown sddm:sddm /var/lib/sddm/state.conf
+  fi
+  sudo systemctl set-default graphical.target
   ;;
 user)
   [[ -x /usr/bin/omarchy-provision-user ]] || die "omarchy not installed"

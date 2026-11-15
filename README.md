@@ -27,7 +27,6 @@ sudo env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -Syu   # only if the next phase sa
 ./omarchy-on-aurora.sh system
 ./omarchy-on-aurora.sh user
 ./omarchy-on-aurora.sh verify
-sudo systemctl set-default graphical.target   # Aurora minimal boots to multi-user; SDDM needs graphical
 sudo reboot                        # SDDM login -> Hyprland
 ```
 
@@ -52,6 +51,8 @@ and those paths would break Aurora:
 | Firewall: deny incoming, SSH not opened | SSH allowed from the LAN before ufw is enabled |
 | `hardware/vulkan` would add `vulkan-asahi` (conflicts with `vulkan-aurora`) | skipped |
 | `config/snapper` sets up snapper + `limine-snapper-sync` | skipped |
+| Aurora's GPU driver probes late (~18 s on a J575c); SDDM's Hyprland greeter started first rendered in software (laggy) and missed the USB-C monitor | display-manager drop-in waits (max 30 s) for a render node bound to `aurora` |
+| Omarchy's SDDM theme logs in as SDDM's remembered user, which only its first-boot setup writes (empty: "User not known to the underlying authentication module") | `system` seeds `/var/lib/sddm/state.conf` (user + `omarchy.desktop`), no autologin; also sets `graphical.target` |
 | `omarchy-reinstall-configs` also resets Limine (`/boot/limine.conf`, `limine-update`) and Plymouth (`mkinitcpio -P`) | the `user` phase copies `/etc/skel` and sets up nvim itself |
 | Direct `pacman -Syu` is refused by Omarchy's guard hook | `sudo env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -Syu`; `omarchy update` should also work (without the Mac boot package it only warns that boot files were not verified) |
 | Migrations from older Omarchy versions | `omarchy-provision-user --first-install` marks all shipped ones done |

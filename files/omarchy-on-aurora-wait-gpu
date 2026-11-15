@@ -1,0 +1,17 @@
+#!/bin/bash
+# ExecStartPre for the display manager: wait (at most ${1:-30} s) until a DRM
+# render node is bound to Aurora's GPU driver. Aurora's GPU probes late in boot
+# (after the Mac's firmware is extracted, ~18 s on a J575c); a greeter
+# compositor that starts first finds no GPU, renders in software and only sees
+# the outputs that were up at that moment. Never fails the unit.
+limit=$(( ${1:-30} * 10 ))
+for ((i = 0; i < limit; i++)); do
+  for n in /sys/class/drm/renderD*; do
+    [[ $(readlink -f "$n/device/driver" 2>/dev/null) == */aurora ]] || continue
+    udevadm wait --timeout=5 "/dev/dri/${n##*/}" 2>/dev/null
+    exit 0
+  done
+  sleep 0.1
+done
+echo "no Aurora GPU render node after ${1:-30} s; starting the greeter anyway" >&2
+exit 0
