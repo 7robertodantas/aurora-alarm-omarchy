@@ -213,10 +213,19 @@ initramfs)
   B=$STATE/pre-omarchy; changed=0
   for img in /boot/initramfs-*.img; do
     [[ -e $B/$(basename "$img").contents ]] || continue
-    if sudo lsinitcpio "$img" | sort | diff "$B/$(basename "$img").contents" -; then say "$img unchanged"; else changed=1; fi
+    d=$(sudo lsinitcpio "$img" | sort | diff "$B/$(basename "$img").contents" - | grep '^[<>]' || true)
+    removed=$(grep '^<' <<<"$d" || true)
+    added=$(grep '^>' <<<"$d" | sed 's/^> //' | grep -vxF -f <(printf '%s\n' $INITRAMFS_ACCEPT) || true)
+    if [[ -z $d ]]; then say "$img unchanged"
+    elif [[ -z $removed && -z $added ]]; then say "$img: only reviewed additions ($(grep -c '^>' <<<"$d") files, INITRAMFS_ACCEPT)"
+    else
+      [[ -z $removed ]] || { echo "removed from $img:"; echo "$removed"; }
+      [[ -z $added ]] || { echo "unreviewed additions in $img:"; echo "$added"; }
+      changed=1
+    fi
   done
   ls /etc/mkinitcpio.conf.d/ /etc/limine-entry-tool.d/ 2>/dev/null || true
-  ((changed == 0)) || die "an initramfs changed (diff above): check before rebooting; backups are /boot/*.pre-omarchy"
+  ((changed == 0)) || die "an initramfs changed (above): review before rebooting (add harmless files to INITRAMFS_ACCEPT); backups are /boot/*.pre-omarchy"
   ;;
 system)
   "$0" check
