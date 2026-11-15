@@ -78,12 +78,22 @@ temp_db() { # a throwaway sync DB; the real one and /etc/pacman.conf stay untouc
   P=(pacman --config "$WORK/pacman.conf" --dbpath "$WORK/db")
 }
 
-check_plan() { # $1 plan file ("repo name version" per line)
-  local r n v bad=0
+check_plan() { # $1 plan file ("repo name version" per line); $2.. pacman command (default: pacman)
+  local plan=$1 r n v c bad=0; shift
+  local pac=("${@:-pacman}")
   while read -r r n v; do
     if pacman -Q "$n" >/dev/null 2>&1; then echo "  changes installed: $r/$n $v (now $(pacman -Q "$n" | cut -d' ' -f2))"; bad=1; fi
     if [[ $n =~ $PROTECTED_RE && $r != aurora ]]; then echo "  protected package from $r: $n $v"; bad=1; fi
-  done < "$1"
+  done < "$plan"
+  # pacman --print does not evaluate conflicts: check them against what is installed.
+  while read -r n c; do
+    [[ -n $c && $c != None ]] || continue
+    # pacman -T honours version constraints (e.g. mkinitcpio<30): empty = an installed package matches
+    if [[ -z $(pacman -T "$c" 2>/dev/null) ]]; then
+      echo "  $n conflicts with installed $c"; bad=1
+    fi
+  done < <("${pac[@]}" -Si $(awk '{print $1"/"$2}' "$plan") 2>/dev/null |
+           awk -F' : ' '/^Name/{n=$2} /^Conflicts With/{k=split($2,a," "); for(i=1;i<=k;i++) print n" "a[i]}')
   return $bad
 }
 
@@ -143,7 +153,7 @@ dryrun)
   ((${#missing[@]} == 0)) || { for p in "${missing[@]}"; do echo "  $p: $("${P[@]}" -Sp "$p" 2>&1 | grep -E 'unable|not found' | head -1)"; done; die "unresolvable: ${missing[*]} (try OMARCHY_CHANNEL=stable|edge, or add to DROP_PACKAGES)"; }
   "${P[@]}" -S --needed --print --print-format '%r %n %v' "${ok[@]}" > "$WORK/plan.txt"
   say "plan: $(wc -l < "$WORK/plan.txt") packages ($(awk '{print $1}' "$WORK/plan.txt" | sort | uniq -c | tr -s ' ' | tr '\n' ','))"
-  check_plan "$WORK/plan.txt" || die "the plan would change installed or protected packages (above)"
+  check_plan "$WORK/plan.txt" "${P[@]}" || die "the plan would change installed or protected packages, or conflicts (above)"
   check_payload
   cp "$WORK/plan.txt" "$STATE/plan-$(date +%Y%m%d-%H%M%S).txt"
   say "dry run clean: nothing installed changes, no unreviewed boot/initramfs files"
