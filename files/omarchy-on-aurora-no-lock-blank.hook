@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = omarchy
+
+[Action]
+Description = omarchy-on-aurora: keep the lock screen from blanking (Aurora display replug loop)...
+When = PostTransaction
+Exec = /usr/local/libexec/omarchy-on-aurora-no-lock-blank

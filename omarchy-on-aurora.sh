@@ -258,6 +258,13 @@ system)
     sudo chown sddm:sddm /var/lib/sddm/state.conf
   fi
   sudo systemctl set-default graphical.target
+  # The lock blanks the displays (DPMS off) 5 s after the last activity; on
+  # Aurora the display firmware reports an unplug right after its own power-off,
+  # the lock takes the returning display for a wake, and it loops every ~14 s.
+  # Keep omarchy-brightness-display off a no-op (re-applied after omarchy updates).
+  sudo install -Dm755 "$HERE/files/omarchy-on-aurora-no-lock-blank" /usr/local/libexec/omarchy-on-aurora-no-lock-blank
+  sudo install -Dm644 "$HERE/files/omarchy-on-aurora-no-lock-blank.hook" /etc/pacman.d/hooks/omarchy-on-aurora-no-lock-blank.hook
+  sudo /usr/local/libexec/omarchy-on-aurora-no-lock-blank
   ;;
 user)
   [[ -x /usr/bin/omarchy-provision-user ]] || die "omarchy not installed"

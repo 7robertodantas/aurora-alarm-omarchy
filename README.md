@@ -53,6 +53,7 @@ and those paths would break Aurora:
 | `config/snapper` sets up snapper + `limine-snapper-sync` | skipped |
 | Aurora's GPU driver probes late (~18 s on a J575c); SDDM's Hyprland greeter started first rendered in software (laggy) and missed the USB-C monitor | display-manager drop-in waits (max 30 s) for a render node bound to `aurora` |
 | Omarchy's SDDM theme logs in as SDDM's remembered user, which only its first-boot setup writes (empty: "User not known to the underlying authentication module") | `system` seeds `/var/lib/sddm/state.conf` (user + `omarchy.desktop`), no autologin; also sets `graphical.target` |
+| Locked screen loops every ~14 s: the lock blanks the displays (DPMS off), Aurora's display firmware reports an unplug right after its own power-off, the lock counts the returning display as a wake | `omarchy-brightness-display off` patched to a no-op, re-applied by a pacman hook after `omarchy` updates (displays stay lit while locked; the monitors' own standby still applies) |
 | `omarchy-reinstall-configs` also resets Limine (`/boot/limine.conf`, `limine-update`) and Plymouth (`mkinitcpio -P`) | the `user` phase copies `/etc/skel` and sets up nvim itself |
 | Direct `pacman -Syu` is refused by Omarchy's guard hook | `sudo env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -Syu`; `omarchy update` should also work (without the Mac boot package it only warns that boot files were not verified) |
 | Migrations from older Omarchy versions | `omarchy-provision-user --first-install` marks all shipped ones done |
@@ -99,6 +100,7 @@ Update the "Reviewed against" line in `reviewed.conf` after a review.
 - Initramfs: `/boot/initramfs-*.img.pre-omarchy`.
 - Config: `/etc/pacman.conf.pre-omarchy`, `~/.local/state/omarchy-on-aurora/pre-omarchy/` (package list, enabled
   units, drop-in listing).
+- Lock blanking back: `sudo rm /etc/pacman.d/hooks/omarchy-on-aurora-no-lock-blank.hook && sudo pacman -S omarchy`.
 - Back to the console login: `sudo systemctl set-default multi-user.target` (and `sudo systemctl disable sddm`).
 
 ## Keys

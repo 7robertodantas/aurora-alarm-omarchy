@@ -1,0 +1,19 @@
+#!/bin/bash
+# omarchy-on-aurora: Omarchy's lock blanks the displays (DPMS off) 5 s after
+# the last activity. On Aurora the external displays then report an
+# unplug/replug, which the lock counts as a wake: the screens come back, blank
+# again and loop every ~14 s while locked. Make "omarchy-brightness-display off"
+# a no-op in both copies Omarchy ships. Idempotent; run by a pacman hook after
+# every omarchy install/upgrade. Undo: reinstall omarchy and remove the hook.
+set -e
+for f in /usr/share/omarchy/bin/omarchy-brightness-display /usr/bin/omarchy-brightness-display; do
+  [[ -f $f ]] || continue
+  grep -q 'omarchy-on-aurora: no DPMS off' "$f" && continue
+  # Only the dispatch inside the "off" branch, matched together with its branch line.
+  if grep -qzP 'if \[\[ \$step == "off" \]\]; then\n  hyprctl dispatch .hl\.dsp\.dpms\(\{ action = "disable" \}\). >/dev/null 2>&1\n' "$f"; then
+    perl -0pi -e 's/(if \[\[ \$step == "off" \]\]; then\n)  hyprctl dispatch .hl\.dsp\.dpms\(\{ action = "disable" \}\). >\/dev\/null 2>&1\n/$1  : # omarchy-on-aurora: no DPMS off (Aurora reports a replug, the lock loops)\n/' "$f"
+    echo "patched $f"
+  else
+    echo "omarchy-on-aurora: $f changed upstream; DPMS-off patch not applied, review it" >&2
+  fi
+done
