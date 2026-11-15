@@ -91,7 +91,8 @@ Update the "Reviewed against" line in `reviewed.conf` after a review.
 
 ## Rollback
 
-- Whole system: the read-only Btrfs snapshot `/.snapshots/pre-omarchy` (boot a rescue system or restore files from it).
+- Whole system: the read-only Btrfs snapshots `/.snapshots/pre-omarchy` and, if `/home` is its own subvolume,
+  `/home/.snapshots/pre-omarchy` (restore files from them, or boot a rescue system and swap the subvolumes back).
 - Initramfs: `/boot/initramfs-*.img.pre-omarchy`.
 - Config: `/etc/pacman.conf.pre-omarchy`, `~/.local/state/omarchy-on-aurora/pre-omarchy/` (package list, enabled
   units, drop-in listing).

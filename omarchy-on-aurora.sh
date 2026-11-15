@@ -157,11 +157,20 @@ snapshot)
     sudo lsinitcpio "$img" | sort > "$B/$(basename "$img").contents"
     [[ -e $img.pre-omarchy ]] || sudo cp -a "$img" "$img.pre-omarchy"
   done
+  # Read-only Btrfs snapshots of / and, when it is its own subvolume, /home
+  # (the user phase rewrites dotfiles there).
+  snaps=()
   if findmnt -no FSTYPE / | grep -qx btrfs; then
     sudo mkdir -p /.snapshots
     [[ -e /.snapshots/pre-omarchy ]] || sudo btrfs subvolume snapshot -r / /.snapshots/pre-omarchy
+    snaps+=(/.snapshots/pre-omarchy)
   fi
-  say "rollback points: $B, /boot/*.pre-omarchy, /.snapshots/pre-omarchy"
+  if [[ $(findmnt -no FSTYPE /home 2>/dev/null) == btrfs ]] && sudo btrfs subvolume show /home >/dev/null 2>&1; then
+    sudo mkdir -p /home/.snapshots
+    [[ -e /home/.snapshots/pre-omarchy ]] || sudo btrfs subvolume snapshot -r /home /home/.snapshots/pre-omarchy
+    snaps+=(/home/.snapshots/pre-omarchy)
+  fi
+  say "rollback points: $B, /boot/*.pre-omarchy, ${snaps[*]:-no Btrfs snapshots}"
   ;;
 repo)
   if ! grep -q '^\[omarchy\]' /etc/pacman.conf; then
