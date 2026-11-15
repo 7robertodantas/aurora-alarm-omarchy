@@ -27,6 +27,7 @@ sudo env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -Syu   # only if the next phase sa
 ./omarchy-on-aurora.sh system
 ./omarchy-on-aurora.sh user
 ./omarchy-on-aurora.sh verify
+sudo systemctl set-default graphical.target   # Aurora minimal boots to multi-user; SDDM needs graphical
 sudo reboot                        # SDDM login -> Hyprland
 ```
 
@@ -96,7 +97,7 @@ Update the "Reviewed against" line in `reviewed.conf` after a review.
 - Initramfs: `/boot/initramfs-*.img.pre-omarchy`.
 - Config: `/etc/pacman.conf.pre-omarchy`, `~/.local/state/omarchy-on-aurora/pre-omarchy/` (package list, enabled
   units, drop-in listing).
-- Back to the console login: `sudo systemctl disable sddm && sudo systemctl set-default multi-user.target`.
+- Back to the console login: `sudo systemctl set-default multi-user.target` (and `sudo systemctl disable sddm`).
 
 ## Keys
 
